@@ -1,98 +1,75 @@
-//Copyright (c) 2012 Tommi Virtanen
+// Copyright (c) 2013-2015 The btcsuite developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-//
-//The above copyright notice and this permission notice shall be included in
-//all copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//THE SOFTWARE.
-
-// Package base58 implements a human-friendly base58 encoding.
-//
-// As opposed to base64 and friends, base58 is typically used to
-// convert integers. You can use big.Int.SetBytes to convert arbitrary
-// bytes to an integer first, and big.Int.Bytes the other way around.
 package base58
 
 import (
 	"math/big"
-	"strconv"
 )
 
-const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+//go:generate go run genalphabet.go
 
-var decodeMap [256]byte
+var bigRadix = big.NewInt(58)
+var bigZero = big.NewInt(0)
 
-func init() {
-	for i := 0; i < len(decodeMap); i++ {
-		decodeMap[i] = 0xFF
+// Decode decodes a modified base58 string to a byte slice.
+func Decode(b string) []byte {
+	answer := big.NewInt(0)
+	j := big.NewInt(1)
 
-	}
-	for i := 0; i < len(alphabet); i++ {
-		decodeMap[alphabet[i]] = byte(i)
-
-	}
-}
-
-//CorruptInputError representds input is corrupted.
-type CorruptInputError int64
-
-//Error is to implement Error interface.
-func (e CorruptInputError) Error() string {
-	return "illegal base58 data at input byte " + strconv.FormatInt(int64(e), 10)
-
-}
-
-// DecodeToBig a big integer from the bytes. Returns an error on corrupt
-// input.
-func DecodeToBig(src []byte) (*big.Int, error) {
-	n := new(big.Int)
-	radix := big.NewInt(58)
-	for i := 0; i < len(src); i++ {
-		b := decodeMap[src[i]]
-		if b == 0xFF {
-			return nil, CorruptInputError(i)
-
+	scratch := new(big.Int)
+	for i := len(b) - 1; i >= 0; i-- {
+		tmp := b58[b[i]]
+		if tmp == 255 {
+			return []byte("")
 		}
-		n.Mul(n, radix)
-		n.Add(n, big.NewInt(int64(b)))
-
+		scratch.SetInt64(int64(tmp))
+		scratch.Mul(j, scratch)
+		answer.Add(answer, scratch)
+		j.Mul(j, bigRadix)
 	}
-	return n, nil
 
+	tmpval := answer.Bytes()
+
+	var numZeros int
+	for numZeros = 0; numZeros < len(b); numZeros++ {
+		if b[numZeros] != alphabetIdx0 {
+			break
+		}
+	}
+	flen := numZeros + len(tmpval)
+	val := make([]byte, flen)
+	copy(val[numZeros:], tmpval)
+
+	return val
 }
 
-// EncodeBig encodes src, appending to dst. Be sure to use the returned
-// new value of dst.
-func EncodeBig(dst []byte, src *big.Int) []byte {
-	start := len(dst)
-	n := new(big.Int)
-	n.Set(src)
-	radix := big.NewInt(58)
-	zero := big.NewInt(0)
+// Encode encodes a byte slice to a modified base58 string.
+func Encode(b []byte) string {
+	x := new(big.Int)
+	x.SetBytes(b)
 
-	for n.Cmp(zero) > 0 {
+	answer := make([]byte, 0, len(b)*136/100)
+	for x.Cmp(bigZero) > 0 {
 		mod := new(big.Int)
-		n.DivMod(n, radix, mod)
-		dst = append(dst, alphabet[mod.Int64()])
-
+		x.DivMod(x, bigRadix, mod)
+		answer = append(answer, alphabet[mod.Int64()])
 	}
 
-	for i, j := start, len(dst)-1; i < j; i, j = i+1, j-1 {
-		dst[i], dst[j] = dst[j], dst[i]
-
+	// leading zero bytes
+	for _, i := range b {
+		if i != 0 {
+			break
+		}
+		answer = append(answer, alphabetIdx0)
 	}
-	return dst
 
+	// reverse
+	alen := len(answer)
+	for i := 0; i < alen/2; i++ {
+		answer[i], answer[alen-1-i] = answer[alen-1-i], answer[i]
+	}
+
+	return string(answer)
 }

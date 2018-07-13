@@ -1,92 +1,96 @@
-//Copyright (c) 2012 Tommi Virtanen
-
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-//
-//The above copyright notice and this permission notice shall be included in
-//all copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//THE SOFTWARE.
+// Copyright (c) 2013-2017 The btcsuite developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 
 package base58
 
 import (
-	"math/big"
+	"bytes"
+	"encoding/hex"
 	"testing"
 )
 
-type testpair struct {
-	decoded int64
-	encoded string
+var stringTests = []struct {
+	in  string
+	out string
+}{
+	{"", ""},
+	{" ", "Z"},
+	{"-", "n"},
+	{"0", "q"},
+	{"1", "r"},
+	{"-1", "4SU"},
+	{"11", "4k8"},
+	{"abc", "ZiCa"},
+	{"1234598760", "3mJr7AoUXx2Wqd"},
+	{"abcdefghijklmnopqrstuvwxyz", "3yxU3u1igY8WkgtjK92fbJQCd4BZiiT1v25f"},
+	{"00000000000000000000000000000000000000000000000000000000000000", "3sN2THZeE9Eh9eYrwkvZqNstbHGvrxSAM7gXUXvyFQP8XvQLUqNCS27icwUeDT7ckHm4FUHM2mTVh1vbLmk7y"},
 }
 
-var pairs = []testpair{
-	{10002343, "tGMC"},
-	{1000, "JF"},
-	{0, ""},
+var invalidStringTests = []struct {
+	in  string
+	out string
+}{
+	{"0", ""},
+	{"O", ""},
+	{"I", ""},
+	{"l", ""},
+	{"3mJr0", ""},
+	{"O3yxU", ""},
+	{"3sNI", ""},
+	{"4kl8", ""},
+	{"0OIl", ""},
+	{"!@#$%^&*()-_=+~`", ""},
 }
 
-func TestEncode(t *testing.T) {
-	for _, p := range pairs {
-		buf := []byte("noise")
-		buf = EncodeBig(buf, big.NewInt(p.decoded))
-		if string(buf) != "noise"+p.encoded {
-			t.Errorf("unexpected result: %q != %q", string(buf), p.encoded)
+var hexTests = []struct {
+	in  string
+	out string
+}{
+	{"61", "2g"},
+	{"626262", "a3gV"},
+	{"636363", "aPEr"},
+	{"73696d706c792061206c6f6e6720737472696e67", "2cFupjhnEsSn59qHXstmK2ffpLv2"},
+	{"00eb15231dfceb60925886b67d065299925915aeb172c06647", "1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L"},
+	{"516b6fcd0f", "ABnLTmg"},
+	{"bf4f89001e670274dd", "3SEo3LWLoPntC"},
+	{"572e4794", "3EFU7m"},
+	{"ecac89cad93923c02321", "EJDM8drfXA6uyA"},
+	{"10c8511e", "Rt5zm"},
+	{"00000000000000000000", "1111111111"},
+}
 
+func TestBase58(t *testing.T) {
+	// Encode tests
+	for x, test := range stringTests {
+		tmp := []byte(test.in)
+		if res := Encode(tmp); res != test.out {
+			t.Errorf("Encode test #%d failed: got: %s want: %s",
+				x, res, test.out)
+			continue
 		}
 	}
-}
 
-func TestDecode(t *testing.T) {
-	for _, data := range pairs {
-		buf := []byte(data.encoded)
-		n, err := DecodeToBig(buf)
+	// Decode tests
+	for x, test := range hexTests {
+		b, err := hex.DecodeString(test.in)
 		if err != nil {
-			t.Errorf("decoding %q failed: %v", data.encoded, err)
-
+			t.Errorf("hex.DecodeString failed failed #%d: got: %s", x, test.in)
+			continue
 		}
-		if n.Int64() != data.decoded {
-			t.Errorf("unexpected result: %v != %v", n, data.decoded)
-
+		if res := Decode(test.out); !bytes.Equal(res, b) {
+			t.Errorf("Decode test #%d failed: got: %q want: %q",
+				x, res, test.in)
+			continue
 		}
 	}
-}
 
-func TestDecodeCorrupt(t *testing.T) {
-	type corrupt struct {
-		input  string
-		offset int
-	}
-	examples := []corrupt{
-		{"!!!!", 0},
-		{"x===", 1},
-		{"x0", 1},
-		{"xl", 1},
-		{"xI", 1},
-		{"xO", 1},
-	}
-
-	for _, e := range examples {
-		_, err := DecodeToBig([]byte(e.input))
-		switch err := err.(type) {
-		case CorruptInputError:
-			if int(err) != e.offset {
-				t.Errorf("Corruption in %q at offset %v, want %v", e.input, int(err), e.offset)
-
-			}
-		default:
-			t.Error("Decoder failed to detect corruption in", e)
-
+	// Decode with invalid input
+	for x, test := range invalidStringTests {
+		if res := Decode(test.in); string(res) != test.out {
+			t.Errorf("Decode invalidString test #%d failed: got: %q want: %q",
+				x, res, test.out)
+			continue
 		}
 	}
 }
