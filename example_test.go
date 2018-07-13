@@ -12,7 +12,7 @@ import (
 func ExampleDecode() {
 	// Decode example modified base58 encoded data.
 	encoded := "25JnwSn7XKfNQ"
-	decoded := Decode(encoded)
+	decoded := Decode([]byte(encoded))
 
 	// Show the decoded data.
 	fmt.Println("Decoded Data:", string(decoded))
@@ -30,7 +30,7 @@ func ExampleEncode() {
 	encoded := Encode(data)
 
 	// Show the encoded data.
-	fmt.Println("Encoded Data:", encoded)
+	fmt.Println("Encoded Data:", string(encoded))
 
 	// Output:
 	// Encoded Data: 25JnwSn7XKfNQ
@@ -41,7 +41,7 @@ func ExampleEncode() {
 func ExampleCheckDecode() {
 	// Decode an example Base58Check encoded data.
 	encoded := "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-	decoded, version, err := CheckDecode(encoded)
+	decoded, version, err := CheckDecode([]byte(encoded))
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -66,7 +66,7 @@ func ExampleCheckEncode() {
 	encoded := CheckEncode(data, 0)
 
 	// Show the encoded data.
-	fmt.Println("Encoded Data:", encoded)
+	fmt.Println("Encoded Data:", string(encoded))
 
 	// Output:
 	// Encoded Data: 182iP79GRURMp7oMHDU

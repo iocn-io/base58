@@ -14,7 +14,7 @@ var bigRadix = big.NewInt(58)
 var bigZero = big.NewInt(0)
 
 // Decode decodes a modified base58 string to a byte slice.
-func Decode(b string) []byte {
+func Decode(b []byte) []byte {
 	answer := big.NewInt(0)
 	j := big.NewInt(1)
 
@@ -46,7 +46,7 @@ func Decode(b string) []byte {
 }
 
 // Encode encodes a byte slice to a modified base58 string.
-func Encode(b []byte) string {
+func Encode(b []byte) []byte {
 	x := new(big.Int)
 	x.SetBytes(b)
 
@@ -71,5 +71,5 @@ func Encode(b []byte) string {
 		answer[i], answer[alen-1-i] = answer[alen-1-i], answer[i]
 	}
 
-	return string(answer)
+	return answer
 }

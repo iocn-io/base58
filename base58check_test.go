@@ -29,12 +29,12 @@ var checkEncodingStringTests = []struct {
 func TestBase58Check(t *testing.T) {
 	for x, test := range checkEncodingStringTests {
 		// test encoding
-		if res := CheckEncode([]byte(test.in), test.version); res != test.out {
+		if res := CheckEncode([]byte(test.in), test.version); string(res) != test.out {
 			t.Errorf("CheckEncode test #%d failed: got %s, want: %s", x, res, test.out)
 		}
 
 		// test decoding
-		res, version, err := CheckDecode(test.out)
+		res, version, err := CheckDecode([]byte(test.out))
 		if err != nil {
 			t.Errorf("CheckDecode test #%d failed with err: %v", x, err)
 		} else if version != test.version {
@@ -46,7 +46,7 @@ func TestBase58Check(t *testing.T) {
 
 	// test the two decoding failure cases
 	// case 1: checksum error
-	_, _, err := CheckDecode("3MNQE1Y")
+	_, _, err := CheckDecode([]byte("3MNQE1Y"))
 	if err != ErrChecksum {
 		t.Error("Checkdecode test failed, expected ErrChecksum")
 	}
@@ -55,7 +55,7 @@ func TestBase58Check(t *testing.T) {
 	testString := ""
 	for len := 0; len < 4; len++ {
 		// make a string of length `len`
-		_, _, err = CheckDecode(testString)
+		_, _, err = CheckDecode([]byte(testString))
 		if err != ErrInvalidFormat {
 			t.Error("Checkdecode test failed, expected ErrInvalidFormat")
 		}
