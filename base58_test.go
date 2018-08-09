@@ -7,7 +7,9 @@ package base58
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"testing"
+	"x-chain-lab/libs/xutils"
 )
 
 var stringTests = []struct {
@@ -93,4 +95,65 @@ func TestBase58(t *testing.T) {
 			continue
 		}
 	}
+}
+
+func TestTrivialEncodeFastDecode(t *testing.T) {
+	randomStringLen := 1024 * 100
+	by := xutils.GetRandomString(randomStringLen)
+	encode := TrivialBase58Encoding(by)
+	decode, err := FastBase58Decoding(string(encode))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(bytes.Equal(by, decode))
+	//fmt.Println(string(decode))
+}
+
+func TestEncodeFastDecode(t *testing.T) {
+	randomStringLen := 1024 * 100
+	by := xutils.GetRandomString(randomStringLen)
+	encode := Encode(by)
+	decode, err := FastBase58Decoding(string(encode))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(bytes.Equal(by, decode))
+	//fmt.Println(string(decode))
+}
+
+func TestFastEncodeTrivialDecode(t *testing.T) {
+	randomStringLen := 1024 * 100
+	by := xutils.GetRandomString(randomStringLen)
+	encode := FastBase58Encoding(by)
+	decode, err := TrivialBase58Decoding(string(encode))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(bytes.Equal(by, decode))
+	//fmt.Println(string(decode))
+}
+
+func TestFastEncodeDecode(t *testing.T) {
+	randomStringLen := 1024 * 100
+	by := xutils.GetRandomString(randomStringLen)
+	encode := FastBase58Encoding(by)
+	decode := Decode([]byte(encode))
+	fmt.Println(bytes.Equal(by, decode))
+	//fmt.Println(string(decode))
+}
+
+func TestTrivialFast(t *testing.T) {
+	randomStringLen := 100
+	by := xutils.GetRandomString(randomStringLen)
+	trivialEncode := TrivialBase58Encoding(by)
+	fastDecode, err := FastBase58Decoding(string(trivialEncode))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fastEncode := FastBase58Encoding(by)
+	trivialDecode, err := TrivialBase58Decoding(string(fastEncode))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(bytes.Equal(fastDecode, trivialDecode))
 }
