@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"testing"
+	"time"
 	"x-chain-lab/libs/xutils"
 )
 
@@ -97,63 +98,22 @@ func TestBase58(t *testing.T) {
 	}
 }
 
-func TestTrivialEncodeFastDecode(t *testing.T) {
-	randomStringLen := 1024 * 100
-	by := xutils.GetRandomString(randomStringLen)
-	encode := TrivialBase58Encoding(by)
-	decode, err := FastBase58Decoding(string(encode))
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(bytes.Equal(by, decode))
-	//fmt.Println(string(decode))
-}
-
-func TestEncodeFastDecode(t *testing.T) {
-	randomStringLen := 1024 * 100
-	by := xutils.GetRandomString(randomStringLen)
-	encode := Encode(by)
-	decode, err := FastBase58Decoding(string(encode))
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(bytes.Equal(by, decode))
-	//fmt.Println(string(decode))
-}
-
-func TestFastEncodeTrivialDecode(t *testing.T) {
-	randomStringLen := 1024 * 100
-	by := xutils.GetRandomString(randomStringLen)
-	encode := FastBase58Encoding(by)
-	decode, err := TrivialBase58Decoding(string(encode))
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(bytes.Equal(by, decode))
-	//fmt.Println(string(decode))
-}
-
 func TestFastEncodeDecode(t *testing.T) {
 	randomStringLen := 1024 * 100
-	by := xutils.GetRandomString(randomStringLen)
-	encode := FastBase58Encoding(by)
-	decode := Decode([]byte(encode))
-	fmt.Println(bytes.Equal(by, decode))
-	//fmt.Println(string(decode))
-}
-
-func TestTrivialFast(t *testing.T) {
-	randomStringLen := 100
-	by := xutils.GetRandomString(randomStringLen)
-	trivialEncode := TrivialBase58Encoding(by)
-	fastDecode, err := FastBase58Decoding(string(trivialEncode))
-	if err != nil {
-		t.Fatal(err)
+	rs := xutils.GetRandomString(randomStringLen)
+	fmt.Println("Start", time.Now())
+	encode1 := Encode(rs)
+	fmt.Println("Encode", time.Now())
+	encode2 := FastEncode(rs)
+	fmt.Println("FastEncode", time.Now())
+	decode1 := Decode([]byte(encode1))
+	fmt.Println("Decode", time.Now())
+	decode2 := FastDecode(encode2)
+	fmt.Println("FastDecode", time.Now())
+	if !bytes.Equal(rs, decode1) {
+		t.Fatal("FastEncode decode1 error")
 	}
-	fastEncode := FastBase58Encoding(by)
-	trivialDecode, err := TrivialBase58Decoding(string(fastEncode))
-	if err != nil {
-		t.Fatal(err)
+	if !bytes.Equal(rs, decode2) {
+		t.Fatal("FastEncode decode2 error")
 	}
-	fmt.Println(bytes.Equal(fastDecode, trivialDecode))
 }

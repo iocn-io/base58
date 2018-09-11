@@ -1,65 +1,7 @@
 package base58
 
-import (
-	"fmt"
-	"math/big"
-)
-
-var (
-	bn0  = big.NewInt(0)
-	bn58 = big.NewInt(58)
-)
-
-// Alphabet is a a b58 alphabet.
-type Alphabet struct {
-	decode [128]int8
-	encode [58]byte
-}
-
-// NewAlphabet creates a new alphabet from the passed string.
-//
-// It panics if the passed string is not 58 bytes long or isn't valid ASCII.
-func NewAlphabet(s string) *Alphabet {
-	if len(s) != 58 {
-		panic("base58 alphabets must be 58 bytes long")
-	}
-	ret := new(Alphabet)
-	copy(ret.encode[:], s)
-	for i := range ret.decode {
-		ret.decode[i] = -1
-	}
-	for i, b := range ret.encode {
-		ret.decode[b] = int8(i)
-	}
-	return ret
-}
-
-// BTCAlphabet is the bitcoin base58 alphabet.
-var BTCAlphabet = NewAlphabet("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
-
-// FlickrAlphabet is the flickr base58 alphabet.
-var FlickrAlphabet = NewAlphabet("123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ")
-
-// Encode encodes the passed bytes into a base58 encoded string.
-func FastEncode(bin []byte) string {
-	return FastBase58Encoding(bin)
-}
-
-// EncodeAlphabet encodes the passed bytes into a base58 encoded string with the
-// passed alphabet.
-func EncodeAlphabet(bin []byte, alphabet *Alphabet) string {
-	return FastBase58EncodingAlphabet(bin, alphabet)
-}
-
-// FastBase58Encoding encodes the passed bytes into a base58 encoded string.
-func FastBase58Encoding(bin []byte) string {
-	return FastBase58EncodingAlphabet(bin, BTCAlphabet)
-}
-
-// FastBase58EncodingAlphabet encodes the passed bytes into a base58 encoded
-// string with the passed alphabet.
-func FastBase58EncodingAlphabet(bin []byte, alphabet *Alphabet) string {
-	zero := alphabet.encode[0]
+func FastEncode(bin []byte) []byte {
+	zero := uint8(alphabetIdx0)
 
 	binsz := len(bin)
 	var i, j, zcount, high int
@@ -86,71 +28,25 @@ func FastBase58EncodingAlphabet(bin []byte, alphabet *Alphabet) string {
 	for j = 0; j < size && buf[j] == 0; j++ {
 	}
 
-	var b58 = make([]byte, size-j+zcount)
+	var code = make([]byte, size-j+zcount)
 
 	if zcount != 0 {
 		for i = 0; i < zcount; i++ {
-			b58[i] = zero
+			code[i] = zero
 		}
 	}
 
 	for i = zcount; j < size; i++ {
-		b58[i] = alphabet.encode[buf[j]]
+		code[i] = alphabet[buf[j]]
 		j++
 	}
 
-	return string(b58)
+	return code
 }
 
-// TrivialBase58Encoding encodes the passed bytes into a base58 encoded string
-// (inefficiently).
-func TrivialBase58Encoding(a []byte) string {
-	return TrivialBase58EncodingAlphabet(a, BTCAlphabet)
-}
-
-// TrivialBase58EncodingAlphabet encodes the passed bytes into a base58 encoded
-// string (inefficiently) with the passed alphabet.
-func TrivialBase58EncodingAlphabet(a []byte, alphabet *Alphabet) string {
-	zero := alphabet.encode[0]
-	idx := len(a)*138/100 + 1
-	buf := make([]byte, idx)
-	bn := new(big.Int).SetBytes(a)
-	var mo *big.Int
-	for bn.Cmp(bn0) != 0 {
-		bn, mo = bn.DivMod(bn, bn58, new(big.Int))
-		idx--
-		buf[idx] = alphabet.encode[mo.Int64()]
-	}
-	for i := range a {
-		if a[i] != 0 {
-			break
-		}
-		idx--
-		buf[idx] = zero
-	}
-	return string(buf[idx:])
-}
-
-// Decode decodes the base58 encoded bytes.
-func FastDecode(str string) ([]byte, error) {
-	return FastBase58Decoding(str)
-}
-
-// DecodeAlphabet decodes the base58 encoded bytes using the given b58 alphabet.
-func DecodeAlphabet(str string, alphabet *Alphabet) ([]byte, error) {
-	return FastBase58DecodingAlphabet(str, alphabet)
-}
-
-// FastBase58Decoding decodes the base58 encoded bytes.
-func FastBase58Decoding(str string) ([]byte, error) {
-	return FastBase58DecodingAlphabet(str, BTCAlphabet)
-}
-
-// FastBase58DecodingAlphabet decodes the base58 encoded bytes using the given
-// b58 alphabet.
-func FastBase58DecodingAlphabet(str string, alphabet *Alphabet) ([]byte, error) {
-	if len(str) == 0 {
-		return nil, fmt.Errorf("zero length string")
+func FastDecode(bytes []byte) []byte {
+	if len(bytes) == 0 {
+		return nil //, fmt.Errorf("zero length string")
 	}
 
 	var (
@@ -158,14 +54,13 @@ func FastBase58DecodingAlphabet(str string, alphabet *Alphabet) ([]byte, error) 
 		zmask, c uint32
 		zcount   int
 
-		b58u  = []rune(str)
-		b58sz = len(b58u)
+		b58sz = len(bytes)
 
 		outisz    = (b58sz + 3) / 4 // check to see if we need to change this buffer size to optimize
 		binu      = make([]byte, (b58sz+3)*3)
 		bytesleft = b58sz % 4
 
-		zero = rune(alphabet.encode[0])
+		zero = byte(alphabetIdx0)
 	)
 
 	if bytesleft > 0 {
@@ -176,19 +71,19 @@ func FastBase58DecodingAlphabet(str string, alphabet *Alphabet) ([]byte, error) 
 
 	var outi = make([]uint32, outisz)
 
-	for i := 0; i < b58sz && b58u[i] == zero; i++ {
+	for i := 0; i < b58sz && bytes[i] == zero; i++ {
 		zcount++
 	}
 
-	for _, r := range b58u {
-		if r > 127 {
-			return nil, fmt.Errorf("High-bit set on invalid digit")
+	for _, r := range bytes {
+		if r > 255 {
+			return nil //, fmt.Errorf("High-bit set on invalid digit")
 		}
-		if alphabet.decode[r] == -1 {
-			return nil, fmt.Errorf("Invalid base58 digit (%q)", r)
+		if b58[r] == 255 {
+			return nil //, fmt.Errorf("Invalid base58 digit (%q)", r)
 		}
 
-		c = uint32(alphabet.decode[r])
+		c = uint32(b58[r])
 
 		for j := (outisz - 1); j >= 0; j-- {
 			t = uint64(outi[j])*58 + uint64(c)
@@ -197,37 +92,14 @@ func FastBase58DecodingAlphabet(str string, alphabet *Alphabet) ([]byte, error) 
 		}
 
 		if c > 0 {
-			return nil, fmt.Errorf("Output number too big (carry to the next int32)")
+			return nil //, fmt.Errorf("Output number too big (carry to the next int32)")
 		}
 
 		if outi[0]&zmask != 0 {
-			return nil, fmt.Errorf("Output number too big (last int32 filled too far)")
+			return nil //, fmt.Errorf("Output number too big (last int32 filled too far)")
 		}
 	}
 
-	// the nested for-loop below is the same as the original code:
-	// switch (bytesleft) {
-	// 	case 3:
-	// 		*(binu++) = (outi[0] & 0xff0000) >> 16;
-	// 		//-fallthrough
-	// 	case 2:
-	// 		*(binu++) = (outi[0] & 0xff00) >>  8;
-	// 		//-fallthrough
-	// 	case 1:
-	// 		*(binu++) = (outi[0] & 0xff);
-	// 		++j;
-	// 		//-fallthrough
-	// 	default:
-	// 		break;
-	// }
-	//
-	// for (; j < outisz; ++j)
-	// {
-	// 	*(binu++) = (outi[j] >> 0x18) & 0xff;
-	// 	*(binu++) = (outi[j] >> 0x10) & 0xff;
-	// 	*(binu++) = (outi[j] >>    8) & 0xff;
-	// 	*(binu++) = (outi[j] >>    0) & 0xff;
-	// }
 	var j, cnt int
 	for j, cnt = 0, 0; j < outisz; j++ {
 		for mask := byte(bytesleft-1) * 8; mask <= 0x18; mask, cnt = mask-8, cnt+1 {
@@ -244,42 +116,8 @@ func FastBase58DecodingAlphabet(str string, alphabet *Alphabet) ([]byte, error) 
 			if start < 0 {
 				start = 0
 			}
-			return binu[start:cnt], nil
+			return binu[start:cnt]
 		}
 	}
-	return binu[:cnt], nil
-}
-
-// TrivialBase58Decoding decodes the base58 encoded bytes (inefficiently).
-func TrivialBase58Decoding(str string) ([]byte, error) {
-	return TrivialBase58DecodingAlphabet(str, BTCAlphabet)
-}
-
-// TrivialBase58DecodingAlphabet decodes the base58 encoded bytes
-// (inefficiently) using the given b58 alphabet.
-func TrivialBase58DecodingAlphabet(str string, alphabet *Alphabet) ([]byte, error) {
-	zero := alphabet.encode[0]
-
-	var zcount int
-	for i := 0; i < len(str) && str[i] == zero; i++ {
-		zcount++
-	}
-	leading := make([]byte, zcount)
-
-	var padChar rune = -1
-	src := []byte(str)
-	j := 0
-	for ; j < len(src) && src[j] == byte(padChar); j++ {
-	}
-
-	n := new(big.Int)
-	for i := range src[j:] {
-		c := alphabet.decode[src[i]]
-		if c == -1 {
-			return nil, fmt.Errorf("illegal base58 data at input index: %d", i)
-		}
-		n.Mul(n, bn58)
-		n.Add(n, big.NewInt(int64(c)))
-	}
-	return append(leading, n.Bytes()...), nil
+	return binu[:cnt]
 }
