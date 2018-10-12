@@ -1,7 +1,8 @@
 {
   "props":{
     "othersVersion":"master",
-    "domain":""
+    "domain":"",
+	"version":"master"
   },
   "profiles":[
     {
@@ -35,7 +36,7 @@
 	  "path":"../xutils",
       "alias":"x-chain-lab/libs/xutils",
       "domain":"$domain",
-      "version":"x-kite"
+      "version":"$version"
     }
   ]
 }
