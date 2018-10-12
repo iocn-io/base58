@@ -1,0 +1,41 @@
+{
+  "props":{
+    "othersVersion":"master",
+    "domain":""
+  },
+  "profiles":[
+    {
+      "id":"xchainlab",
+      "race":true,
+      "props": {
+        "version":"develop",
+        "profile":"dev",
+        "domain":"xchainlab"
+      },
+      "deps":[
+      ]
+    },
+    {
+      "id":"default",
+      "race":true,
+	  "default":true,
+      "props": {
+        "version":"develop",
+        "profile":"dev",
+        "domain":""
+      },
+      "deps":[
+      ]
+    }
+  ],
+  "deps":[
+    {
+      "repo":"git@github.com:x-chain-lab/xutils.git",
+      "pkg":"github.com/x-chain-lab/xutils",
+	  "path":"xutils",
+      "alias":"x-chain-lab/libs/xutils",
+      "domain":"$domain",
+      "version":"x-kite"
+    }
+  ]
+}
