@@ -32,7 +32,7 @@
     {
       "repo":"git@github.com:x-chain-lab/xutils.git",
       "pkg":"github.com/x-chain-lab/xutils",
-	  "path":"xutils",
+	  "path":"../xutils",
       "alias":"x-chain-lab/libs/xutils",
       "domain":"$domain",
       "version":"x-kite"
