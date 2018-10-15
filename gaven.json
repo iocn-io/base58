@@ -7,7 +7,6 @@
   "profiles":[
     {
       "id":"xchainlab",
-      "race":true,
       "props": {
         "version":"develop",
         "profile":"dev",
@@ -18,7 +17,6 @@
     },
     {
       "id":"default",
-      "race":true,
 	  "default":true,
       "props": {
         "version":"develop",
