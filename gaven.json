@@ -18,8 +18,7 @@
     },
     {
       "id":"default",
-	  "default":true,
-	  "useLocalSources":false,
+	  "useLocalSources":true,
       "props": {
         "version":"develop",
         "profile":"dev",
