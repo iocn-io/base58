@@ -8,10 +8,24 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
-	"x-chain-lab/libs/xutils"
 )
+
+const (
+	randomSeed    string = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	randomSeedLen int    = len(randomSeed)
+)
+
+func GetRandomString(l int) []byte {
+	result := make([]byte, 0, l)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < l; i++ {
+		result = append(result, randomSeed[r.Intn(randomSeedLen)])
+	}
+	return result
+}
 
 var stringTests = []struct {
 	in  string
@@ -100,7 +114,7 @@ func TestBase58(t *testing.T) {
 
 func TestFastEncodeDecode(t *testing.T) {
 	randomStringLen := 1024 * 100
-	rs := xutils.GetRandomString(randomStringLen)
+	rs := GetRandomString(randomStringLen)
 	fmt.Println("Start", time.Now())
 	encode1 := Encode(rs)
 	fmt.Println("Encode", time.Now())
